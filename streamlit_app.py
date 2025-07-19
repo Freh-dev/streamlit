@@ -4,14 +4,15 @@ import matplotlib.pyplot as plt
 import math
 
 # Title and Intro
-st.title("Data App Assignment, on July 14th")
-st.write("### Input Data and Examples")
+st.title("Data App Assignment – Superstore Sales Analysis")
+st.write("### Input Data and Initial Visualizations")
 
 # Load data
 df = pd.read_csv("Superstore_Sales_utf8.csv", parse_dates=True)
 st.dataframe(df)
 
-# This bar chart will not have solid bars--but lines--because the detail data is being graphed independently
+# Initial bar chart (raw)
+st.write("#### Raw Sales by Category (Unaggregated)")
 st.bar_chart(df, x="Category", y="Sales")
 
 # Aggregated bar chart
@@ -20,8 +21,18 @@ aggregated = df.groupby("Category", as_index=False).sum()
 st.dataframe(aggregated)
 st.bar_chart(aggregated, x="Category", y="Sales", color="#04f")
 
+# Convert date and group by month
+df["Order_Date"] = pd.to_datetime(df["Order_Date"])
+df.set_index('Order_Date', inplace=True)
+
+# Monthly sales trend
+sales_by_month = df[["Sales"]].groupby(pd.Grouper(freq='M')).sum()
+st.write("#### Monthly Sales Trend")
+st.dataframe(sales_by_month)
+st.line_chart(sales_by_month, y="Sales")
+
 # ================================
-# Additions Start Here
+# Interactive Dashboard Section
 # ================================
 st.write("## Interactive Dashboard")
 st.write("""
@@ -36,12 +47,8 @@ category = st.selectbox("Choose a Category:", df["Category"].unique())
 subcategories = df[df["Category"] == category]["Sub-Category"].unique()
 selected_subcats = st.multiselect("Choose Sub-Categories:", subcategories)
 
-# Filtered data before setting index
-filtered_df = df[(df["Category"] == category) & (df["Sub-Category"].isin(selected_subcats))].copy()
-
-# Convert date for filtered subset
-filtered_df["Order_Date"] = pd.to_datetime(filtered_df["Order_Date"])
-filtered_df.set_index("Order_Date", inplace=True)
+# Filtered data
+filtered_df = df[(df["Category"] == category) & (df["Sub-Category"].isin(selected_subcats))]
 
 if not filtered_df.empty:
     # 3. Line chart of sales for selected Sub-Categories
@@ -63,9 +70,9 @@ if not filtered_df.empty:
     col1.metric("Total Sales", f"${total_sales:,.2f}")
     col2.metric("Total Profit", f"${total_profit:,.2f}")
     col3.metric("Profit Margin", f"{profit_margin:.2f}%", delta=f"{delta_margin:.2f}%")
+
 else:
     st.warning("No sales data found for the selected sub-categories. Try selecting different options.")
-
 # ================================
 # Continue with the Original Monthly Sales Logic
 # ================================

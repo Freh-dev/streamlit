@@ -20,19 +20,6 @@ aggregated = df.groupby("Category", as_index=False).sum()
 st.dataframe(aggregated)
 st.bar_chart(aggregated, x="Category", y="Sales", color="#04f")
 
-
-# Convert date and group by month
-df["Order_Date"] = pd.to_datetime(df["Order_Date"])
-df.set_index('Order_Date', inplace=True)
-
-
-# Here the Grouper is using our newly set index to group by Month ('M')
-sales_by_month = df[["Sales"]].groupby(pd.Grouper(freq='M')).sum()
-st.write("#### Monthly Sales Trend")
-st.dataframe(sales_by_month)
-# Here the grouped months are the index and automatically used for the x axis
-st.line_chart(sales_by_month, y="Sales")
-
 # ================================
 # Additions Start Here
 # ================================
@@ -49,9 +36,12 @@ category = st.selectbox("Choose a Category:", df["Category"].unique())
 subcategories = df[df["Category"] == category]["Sub-Category"].unique()
 selected_subcats = st.multiselect("Choose Sub-Categories:", subcategories)
 
-# Filtered data
-filtered_df = df[(df["Category"] == category) & (df["Sub-Category"].isin(selected_subcats))]
+# Filtered data before setting index
+filtered_df = df[(df["Category"] == category) & (df["Sub-Category"].isin(selected_subcats))].copy()
 
+# Convert date for filtered subset
+filtered_df["Order_Date"] = pd.to_datetime(filtered_df["Order_Date"])
+filtered_df.set_index("Order_Date", inplace=True)
 
 if not filtered_df.empty:
     # 3. Line chart of sales for selected Sub-Categories
@@ -73,6 +63,16 @@ if not filtered_df.empty:
     col1.metric("Total Sales", f"${total_sales:,.2f}")
     col2.metric("Total Profit", f"${total_profit:,.2f}")
     col3.metric("Profit Margin", f"{profit_margin:.2f}%", delta=f"{delta_margin:.2f}%")
-
 else:
     st.warning("No sales data found for the selected sub-categories. Try selecting different options.")
+
+# ================================
+# Continue with the Original Monthly Sales Logic
+# ================================
+df["Order_Date"] = pd.to_datetime(df["Order_Date"])
+df.set_index('Order_Date', inplace=True)
+
+sales_by_month = df[["Sales"]].groupby(pd.Grouper(freq='M')).sum()
+st.write("#### Monthly Sales Trend (All Categories)")
+st.dataframe(sales_by_month)
+st.line_chart(sales_by_month, y="Sales")
